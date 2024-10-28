@@ -181,6 +181,7 @@ public final class Utilities {
 
     @IntDef({TRANSLATE_UP, TRANSLATE_DOWN, TRANSLATE_LEFT, TRANSLATE_RIGHT})
     public @interface AdjustmentDirection{}
+    public static final String FDROID_PACKAGE = "org.fdroid.fdroid";
     public static final String GSA_PACKAGE = "com.google.android.googlequicksearchbox";
     public static final String LENS_URI = "google://lens";
     public static final String LENS_SHARE_ACTIVITY = "com.google.android.apps.search.lens.LensShareEntryPointActivity";
@@ -907,8 +908,13 @@ public final class Utilities {
     }
 
     public static boolean isPackageEnabled(String pkg, Context context) {
+        return isPackageEnabled(pkg, context, false);
+    }
+
+    public static boolean isPackageEnabled(String pkg, Context context, boolean systemOnly) {
         try {
-            return context.getPackageManager().getApplicationInfo(pkg, 0).enabled;
+            int flags = systemOnly ? PackageManager.MATCH_SYSTEM_ONLY : 0;
+            return context.getPackageManager().getApplicationInfo(pkg, flags).enabled;
         } catch (PackageManager.NameNotFoundException e) {
             return false;
         }
@@ -923,6 +929,10 @@ public final class Utilities {
         intent.setComponent(new ComponentName(GSA_PACKAGE, LENS_SHARE_ACTIVITY));
         return context.getPackageManager().queryIntentActivities(intent,
                 PackageManager.MATCH_DEFAULT_ONLY).size() > 0;
+    }
+
+    public static boolean isFDroidEnabled(Context context) {
+        return isPackageEnabled(FDROID_PACKAGE, context, true);
     }
 
     public static boolean isLongPressToSearchEnabled(Context context) {

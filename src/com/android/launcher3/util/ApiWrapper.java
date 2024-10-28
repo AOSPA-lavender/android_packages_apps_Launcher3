@@ -113,6 +113,14 @@ public class ApiWrapper implements ResourceBasedOverride, SafeCloseable {
      * Activity).
      */
     public Intent getAppMarketActivityIntent(String packageName, UserHandle user) {
+        if (Utilities.isFDroidEnabled(mContext)) {
+            Intent intent = mContext.getPackageManager()
+                    .getLaunchIntentForPackage(Utilities.FDROID_PACKAGE);
+            if (packageName == null || BuildConfig.APPLICATION_ID.equals(packageName)) {
+                return intent;
+            }
+            return intent.setData(Uri.parse("https://f-droid.org/packages/" + packageName));
+        }
         return new Intent(Intent.ACTION_VIEW)
                 .setData(new Uri.Builder()
                         .scheme("market")
