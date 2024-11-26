@@ -22,8 +22,11 @@ import static com.android.launcher3.uioverrides.states.OverviewModalTaskState.ge
 import android.content.Context;
 import android.graphics.Color;
 
+import androidx.core.graphics.ColorUtils;
+
 import com.android.launcher3.DeviceProfile;
 import com.android.launcher3.R;
+import com.android.launcher3.Utilities;
 import com.android.launcher3.statemanager.BaseState;
 import com.android.launcher3.util.Themes;
 import com.android.quickstep.views.RecentsViewContainer;
@@ -107,7 +110,7 @@ public class RecentsState implements BaseState<RecentsState> {
      * For this state, whether clear all button should be shown.
      */
     public boolean hasClearAllButton() {
-        return hasFlag(FLAG_CLEAR_ALL_BUTTON);
+        return false;
     }
 
     /**
@@ -128,8 +131,9 @@ public class RecentsState implements BaseState<RecentsState> {
      * For this state, what color scrim should be drawn behind overview.
      */
     public int getScrimColor(Context context) {
-        return hasFlag(FLAG_SCRIM)
-                ? Themes.getAttrColor(context, R.attr.overviewScrimColor)
+        return hasFlag(FLAG_SCRIM) ? ColorUtils.setAlphaComponent(
+                Themes.getAttrColor(context, R.attr.overviewScrimColor),
+                60 * 255 / 100)
                 : Color.TRANSPARENT;
     }
 

@@ -177,7 +177,6 @@ public class TaskbarView extends FrameLayout implements FolderIcon.FolderIconPar
             mTaskbarDivider.setPadding(mItemPadding, mItemPadding, mItemPadding, mItemPadding);
         }
 
-        // TODO: Disable touch events on QSB otherwise it can crash.
         mQsb = LayoutInflater.from(context).inflate(R.layout.search_container_hotseat, this, false);
 
         // Default long press (touch) delay = 400ms

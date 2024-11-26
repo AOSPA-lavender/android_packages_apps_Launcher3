@@ -2791,6 +2791,10 @@ public abstract class RecentsView<CONTAINER_TYPE extends Context & RecentsViewCo
         animateActionsViewIn();
 
         mCurrentGestureEndTarget = null;
+
+        switchToScreenshot(
+            () -> finishRecentsAnimation(true /* toRecents */, false /* shouldPip */,
+                    null));
     }
 
     /**
@@ -4263,6 +4267,10 @@ public abstract class RecentsView<CONTAINER_TYPE extends Context & RecentsViewCo
     private void dismissAllTasks(View view) {
         runDismissAnimation(createAllTasksDismissAnimation(DISMISS_TASK_DURATION));
         mContainer.getStatsLogManager().logger().log(LAUNCHER_TASK_CLEAR_ALL);
+    }
+
+    public void dismissAllTasks() {
+        dismissAllTasks(null);
     }
 
     private void dismissCurrentTask() {
@@ -5961,6 +5969,7 @@ public abstract class RecentsView<CONTAINER_TYPE extends Context & RecentsViewCo
                     mRecentsAnimationController.screenshotTask(container.getTask().key.id);
             TaskThumbnailViewDeprecated thumbnailView = container.getThumbnailViewDeprecated();
             if (td != null) {
+                container.getTask().thumbnail = td;
                 thumbnailView.setThumbnail(container.getTask(), td);
             } else {
                 thumbnailView.refresh();

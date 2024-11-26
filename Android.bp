@@ -57,6 +57,11 @@ filegroup {
     ],
 }
 
+filegroup {
+    name: "launcher-src_base",
+    srcs: [ "src_base/**/*.java", "src_base/**/*.kt" ],
+}
+
 // Proguard files for Launcher3
 filegroup {
     name: "launcher-proguard-rules",
@@ -165,6 +170,7 @@ android_library {
         "com_android_wm_shell_flags_lib",
         "android.appwidget.flags-aconfig-java",
         "com.android.window.flags.window-aconfig-java",
+        "libGoogleFeed",
     ],
     manifest: "AndroidManifest-common.xml",
     sdk_version: "current",
@@ -186,6 +192,7 @@ android_app {
     srcs: [
         ":launcher-src",
         ":launcher-src_no_quickstep",
+        ":launcher-src_base",
         ":launcher-build-config",
     ],
 
@@ -205,7 +212,10 @@ android_app {
         "Home",
         "Launcher2",
     ],
-    required: ["privapp_whitelist_com.android.launcher3"],
+    required: [
+        "privapp_whitelist_com.android.launcher3",
+        "privapp_whitelist_com.android.launcher3-ext",
+    ],
 
     jacoco: {
         include_filter: ["com.android.launcher3.**"],
@@ -216,6 +226,13 @@ android_app {
     lint: {
         baseline_filename: "lint-baseline.xml",
     },
+}
+
+java_import {
+    name: "libGoogleFeed",
+    jars: [
+        "libs/libGoogleFeed.jar",
+    ],
 }
 
 // Library with all the dependencies for building quickstep
@@ -305,6 +322,7 @@ android_app {
         enabled: false,
     },
 
+    certificate: "platform",
     platform_apis: true,
     min_sdk_version: "current",
     target_sdk_version: "current",
@@ -316,7 +334,10 @@ android_app {
         "Launcher2",
         "Launcher3",
     ],
-    required: ["privapp_whitelist_com.android.launcher3"],
+    required: [
+        "privapp_whitelist_com.android.launcher3",
+        "privapp_whitelist_com.android.launcher3-ext",
+    ],
 
     resource_dirs: ["quickstep/res"],
 
@@ -359,7 +380,10 @@ android_app {
         "Launcher3",
         "Launcher3QuickStep",
     ],
-    required: ["privapp_whitelist_com.android.launcher3"],
+    required: [
+        "privapp_whitelist_com.android.launcher3",
+        "privapp_whitelist_com.android.launcher3-ext",
+    ],
 
     additional_manifests: [
         "go/AndroidManifest.xml",
@@ -395,7 +419,10 @@ android_app {
         "Launcher3",
         "Launcher3QuickStep",
     ],
-    required: ["privapp_whitelist_com.android.launcher3"],
+    required: [
+        "privapp_whitelist_com.android.launcher3",
+        "privapp_whitelist_com.android.launcher3-ext",
+    ],
 
     additional_manifests: [
         "go/AndroidManifest.xml",
@@ -407,4 +434,12 @@ android_app {
     jacoco: {
         include_filter: ["com.android.launcher3.*"],
     },
+}
+
+prebuilt_etc {
+    name: "privapp_whitelist_com.android.launcher3-ext",
+    system_ext_specific: true,
+    sub_dir: "permissions",
+    src: "privapp_whitelist_com.android.launcher3-ext.xml",
+    filename_from_src: true,
 }

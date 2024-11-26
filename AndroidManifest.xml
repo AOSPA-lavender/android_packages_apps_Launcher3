@@ -44,7 +44,7 @@
         attributes and intent filters the same
         -->
         <activity
-            android:name="com.android.launcher3.Launcher"
+            android:name="org.yaap.launcher.YaapLauncher"
             android:launchMode="singleTask"
             android:clearTaskOnLaunch="true"
             android:stateNotNeeded="true"
@@ -66,6 +66,9 @@
             </intent-filter>
             <meta-data
                 android:name="com.android.launcher3.grid.control"
+                android:value="${packageName}.grid_control" />
+            <meta-data
+                android:name="com.android.launcher3.themedicon.option"
                 android:value="${packageName}.grid_control" />
         </activity>
 

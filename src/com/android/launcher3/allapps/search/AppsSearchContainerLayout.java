@@ -77,7 +77,6 @@ public class AppsSearchContainerLayout extends ExtendedEditText
 
         mSearchQueryBuilder = new SpannableStringBuilder();
         Selection.setSelection(mSearchQueryBuilder, 0);
-        setHint(prefixTextWithIcon(getContext(), R.drawable.ic_allapps_search, getHint()));
 
         mContentOverlap =
                 getResources().getDimensionPixelSize(R.dimen.all_apps_search_bar_content_overlap);
@@ -86,13 +85,15 @@ public class AppsSearchContainerLayout extends ExtendedEditText
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
-        mAppsView.getAppsStore().addUpdateListener(this);
+        if(mAppsView != null)
+            mAppsView.getAppsStore().addUpdateListener(this);
     }
 
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
-        mAppsView.getAppsStore().removeUpdateListener(this);
+        if(mAppsView != null)
+            mAppsView.getAppsStore().removeUpdateListener(this);
     }
 
     @Override

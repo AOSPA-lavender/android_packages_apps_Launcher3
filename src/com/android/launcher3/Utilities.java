@@ -21,6 +21,7 @@ import static android.graphics.drawable.AdaptiveIconDrawable.getExtraInsetFracti
 import static com.android.launcher3.BuildConfig.WIDGET_ON_FIRST_SCREEN;
 import static com.android.launcher3.Flags.enableSmartspaceAsAWidget;
 import static com.android.launcher3.icons.BitmapInfo.FLAG_THEMED;
+import static com.android.launcher3.util.Executors.MODEL_EXECUTOR;
 import static com.android.launcher3.util.SplitConfigurationOptions.STAGE_POSITION_BOTTOM_OR_RIGHT;
 import static com.android.launcher3.util.SplitConfigurationOptions.STAGE_POSITION_TOP_OR_LEFT;
 import static com.android.launcher3.util.SplitConfigurationOptions.STAGE_TYPE_MAIN;
@@ -30,9 +31,17 @@ import android.app.ActivityManager;
 import android.app.ActivityOptions;
 import android.app.Person;
 import android.app.WallpaperManager;
+import android.appwidget.AppWidgetManager;
+import android.appwidget.AppWidgetProviderInfo;
+import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.LauncherActivityInfo;
 import android.content.pm.LauncherApps;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.content.pm.ShortcutInfo;
 import android.content.res.Configuration;
 import android.content.res.Resources;
@@ -53,12 +62,14 @@ import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.InsetDrawable;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Build.VERSION_CODES;
 import android.os.DeadObjectException;
 import android.os.Handler;
 import android.os.Message;
 import android.os.TransactionTooLargeException;
+import android.provider.Settings;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.TextUtils;
@@ -80,6 +91,8 @@ import androidx.annotation.Nullable;
 import androidx.annotation.WorkerThread;
 import androidx.core.graphics.ColorUtils;
 
+import com.android.launcher3.LauncherModel;
+import com.android.launcher3.LauncherPrefs;
 import com.android.launcher3.dragndrop.FolderAdaptiveIcon;
 import com.android.launcher3.graphics.TintedDrawableSpan;
 import com.android.launcher3.icons.BitmapInfo;
@@ -102,7 +115,10 @@ import com.android.launcher3.views.BaseDragLayer;
 import com.android.launcher3.widget.PendingAddShortcutInfo;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Predicate;
@@ -138,10 +154,14 @@ public final class Utilities {
     public static final boolean ATLEAST_V = Build.VERSION.SDK_INT
             >= VERSION_CODES.VANILLA_ICE_CREAM;
 
+    private static final long WAIT_BEFORE_RESTART = 250;
+
     /**
      * Set on a motion event dispatched from the nav bar. See {@link MotionEvent#setEdgeFlags(int)}.
      */
     public static final int EDGE_NAV_BAR = 1 << 8;
+
+    public static final String KEY_DT_GESTURE = "pref_dt_gesture";
 
     /**
      * Indicates if the device has a debug build. Should only be used to store additional info or
@@ -161,6 +181,18 @@ public final class Utilities {
 
     @IntDef({TRANSLATE_UP, TRANSLATE_DOWN, TRANSLATE_LEFT, TRANSLATE_RIGHT})
     public @interface AdjustmentDirection{}
+    public static final String FDROID_PACKAGE = "org.fdroid.fdroid";
+    public static final String GSA_PACKAGE = "com.google.android.googlequicksearchbox";
+    public static final String LENS_URI = "google://lens";
+    public static final String LENS_SHARE_ACTIVITY = "com.google.android.apps.search.lens.LensShareEntryPointActivity";
+
+    public static final String KEY_DOCK_SEARCH = "pref_dock_search";
+    public static final String KEY_DOCK_SEARCH_PROVIDER = "pref_dock_search_provider";
+    public static final String KEY_APP_DRAWER_OPACITY = "pref_app_drawer_opacity";
+    public static final String KEY_FORCE_MONOCHROME_ICONS = "pref_forced_monochrome_icons";
+    public static final String KEY_AUTO_KEYABORD = "pref_auto_keyboard";
+    public static final String KEY_BLUR_DEPTH = "pref_blur_depth";
+    public static final String KEY_MINUS_ONE = "pref_enable_minus_one";
 
     /**
      * Returns true if theme is dark.
@@ -863,5 +895,133 @@ public final class Utilities {
             }
         }
         return null;
+    }
+
+    public static boolean isDoubleTapGestureEnabled(Context context) {
+        SharedPreferences prefs = LauncherPrefs.getPrefs(context.getApplicationContext());
+        return prefs.getBoolean(KEY_DT_GESTURE, true);
+    }
+
+    public static boolean isWorkspaceEditAllowed(Context context) {
+        SharedPreferences prefs = LauncherPrefs.getPrefs(context.getApplicationContext());
+        return !prefs.getBoolean(InvariantDeviceProfile.KEY_WORKSPACE_LOCK, false);
+    }
+
+    public static boolean isPackageEnabled(String pkg, Context context) {
+        return isPackageEnabled(pkg, context, false);
+    }
+
+    public static boolean isPackageEnabled(String pkg, Context context, boolean systemOnly) {
+        try {
+            int flags = systemOnly ? PackageManager.MATCH_SYSTEM_ONLY : 0;
+            return context.getPackageManager().getApplicationInfo(pkg, flags).enabled;
+        } catch (PackageManager.NameNotFoundException e) {
+            return false;
+        }
+    }
+
+    public static boolean isGSAEnabled(Context context) {
+        if (!isPackageEnabled(GSA_PACKAGE, context)) {
+            return false;
+        }
+        // telling real GSA apart from the google stub
+        Intent intent = new Intent(Intent.ACTION_SEND);
+        intent.setComponent(new ComponentName(GSA_PACKAGE, LENS_SHARE_ACTIVITY));
+        return context.getPackageManager().queryIntentActivities(intent,
+                PackageManager.MATCH_DEFAULT_ONLY).size() > 0;
+    }
+
+    public static boolean isFDroidEnabled(Context context) {
+        return isPackageEnabled(FDROID_PACKAGE, context, true);
+    }
+
+    public static boolean isLongPressToSearchEnabled(Context context) {
+        return Settings.System.getInt(context.getContentResolver(),
+                Settings.System.NAVBAR_LONG_PRESS_GESTURE, 1) == 1;
+    }
+
+    public static void restart(final Context context) {
+        MODEL_EXECUTOR.execute(() -> {
+            try {
+                Thread.sleep(WAIT_BEFORE_RESTART);
+            } catch (Exception ignored) {
+            }
+            android.os.Process.killProcess(android.os.Process.myPid());
+        });
+    }
+
+    public static boolean showQSB(Context context) {
+        return isQSBEnabled(context);
+    }
+
+    private static boolean isQSBEnabled(Context context) {
+        SharedPreferences prefs = LauncherPrefs.getPrefs(context.getApplicationContext());
+        return prefs.getBoolean(KEY_DOCK_SEARCH, true);
+    }
+
+    public static LinkedHashMap<String, String> getQSBProviderFallbacks(Context context) {
+        // predetermined list of priorities
+        ArrayList<String> fallbacks = new ArrayList<>(Arrays.asList(
+                context.getResources().getStringArray(R.array.qsb_search_fallback)));
+        ArrayList<String> fallbackNames = new ArrayList<>(Arrays.asList(
+                context.getResources().getStringArray(R.array.qsb_search_fallback_names)));
+        // dynamically adding the rest of the installed browsers
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setData(Uri.parse("http://www.google.com"));
+        PackageManager pm = context.getPackageManager();
+        List<ResolveInfo> infos = pm.queryIntentActivities(intent, PackageManager.MATCH_ALL);
+        // for each app that can handle a web Uri
+        for (ResolveInfo info : infos) {
+            String name = info.activityInfo.packageName;
+            if (fallbacks.contains(name)) {
+                continue; // skip already coded packages
+            }
+            AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(context);
+            for (AppWidgetProviderInfo widgetInfo :
+                    appWidgetManager.getInstalledProvidersForPackage(name, null)) {
+                if (widgetInfo.provider.getPackageName().equals(name)
+                        && widgetInfo.configure == null) {
+                    if ((widgetInfo.widgetCategory
+                            & AppWidgetProviderInfo.WIDGET_CATEGORY_SEARCHBOX) != 0) {
+                        // add to fallbacks if it has a search widget
+                        fallbacks.add(name);
+                        fallbackNames.add(info.loadLabel(pm).toString());
+                        break;
+                    }
+                }
+            }
+        }
+        // put results in a LinkedHashMap and return it
+        LinkedHashMap<String, String> ret = new LinkedHashMap<>(fallbacks.size());
+        for (int i = 0; i < fallbacks.size(); i++) {
+            ret.put(fallbacks.get(i), fallbackNames.get(i));
+        }
+        return ret;
+    }
+
+    public static String getQSBProviderOverride(Context context) {
+        SharedPreferences prefs = LauncherPrefs.getPrefs(context.getApplicationContext());
+        return prefs.getString(KEY_DOCK_SEARCH_PROVIDER, "");
+    }
+
+    public static int getAllAppsOpacity(Context context) {
+        SharedPreferences prefs = LauncherPrefs.getPrefs(context.getApplicationContext());
+        return prefs.getInt(KEY_APP_DRAWER_OPACITY, 100);
+    }
+
+    public static boolean enableMonoChromeThemedIcons(Context context) {
+        SharedPreferences prefs = LauncherPrefs.getPrefs(context.getApplicationContext());
+        return prefs.getBoolean(KEY_FORCE_MONOCHROME_ICONS, false);
+    }
+
+    public static boolean enableAutoIme(Context context) {
+        SharedPreferences prefs = LauncherPrefs.getPrefs(context.getApplicationContext());
+        return prefs.getBoolean(KEY_AUTO_KEYABORD, false);
+    }
+
+    public static int getBlurRadius(Context context) {
+        SharedPreferences prefs = LauncherPrefs.getPrefs(context.getApplicationContext());
+        return prefs.getInt(KEY_BLUR_DEPTH,
+                (int) context.getResources().getDimension(R.dimen.max_depth_blur_radius));
     }
 }

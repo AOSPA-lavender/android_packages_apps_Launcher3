@@ -25,7 +25,10 @@ import static com.android.launcher3.BuildConfig.IS_STUDIO_BUILD;
 import static com.android.launcher3.states.RotationHelper.ALLOW_ROTATION_PREFERENCE_KEY;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
@@ -40,26 +43,37 @@ import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
+import androidx.preference.ListPreference;
 import androidx.preference.Preference;
+import androidx.preference.PreferenceCategory;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceFragmentCompat.OnPreferenceStartFragmentCallback;
 import androidx.preference.PreferenceFragmentCompat.OnPreferenceStartScreenCallback;
 import androidx.preference.PreferenceGroup.PreferencePositionCallback;
 import androidx.preference.PreferenceScreen;
+import androidx.preference.SwitchPreferenceCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.android.launcher3.BuildConfig;
+import com.android.launcher3.LauncherAppState;
 import com.android.launcher3.LauncherFiles;
+import com.android.launcher3.LauncherPrefs;
 import com.android.launcher3.R;
+import com.android.launcher3.Utilities;
+import com.android.launcher3.qsb.QsbContainerView;
 import com.android.launcher3.states.RotationHelper;
 import com.android.launcher3.util.DisplayController;
 import com.android.launcher3.util.SettingsCache;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 
 /**
  * Settings activity for Launcher. Currently implements the following setting: Allow rotation
  */
 public class SettingsActivity extends FragmentActivity
-        implements OnPreferenceStartFragmentCallback, OnPreferenceStartScreenCallback {
+        implements OnPreferenceStartFragmentCallback, OnPreferenceStartScreenCallback,
+        SharedPreferences.OnSharedPreferenceChangeListener {
 
     @VisibleForTesting
     static final String DEVELOPER_OPTIONS_KEY = "pref_developer_options";
@@ -111,6 +125,21 @@ public class SettingsActivity extends FragmentActivity
             f.setArguments(args);
             // Display the fragment as the main content.
             fm.beginTransaction().replace(R.id.content_frame, f).commit();
+        }
+
+        LauncherPrefs.getPrefs(this).registerOnSharedPreferenceChangeListener(this);
+    }
+
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) { 
+        switch (key) {
+            case Utilities.KEY_DOCK_SEARCH:
+            case Utilities.KEY_DOCK_SEARCH_PROVIDER:
+            case Utilities.KEY_BLUR_DEPTH:
+                LauncherAppState.getInstance(this).setNeedsRestart();
+                break;
+            default:
+                break;
         }
     }
 
@@ -167,6 +196,12 @@ public class SettingsActivity extends FragmentActivity
         private String mHighLightKey;
         private boolean mPreferenceHighlighted = false;
 
+        protected static final String GSA_PACKAGE = "com.google.android.googlequicksearchbox";
+
+        private Preference mShowGoogleAppPref;
+        private Preference mShowGoogleBarPref;
+        private ListPreference mSearchProviderPref;
+
         @Override
         public void onCreate(@Nullable Bundle savedInstanceState) {
             if (BuildConfig.IS_DEBUG_DEVICE) {
@@ -193,6 +228,16 @@ public class SettingsActivity extends FragmentActivity
             PreferenceScreen screen = getPreferenceScreen();
             for (int i = screen.getPreferenceCount() - 1; i >= 0; i--) {
                 Preference preference = screen.getPreference(i);
+                if (preference instanceof PreferenceCategory) {
+                    PreferenceCategory category = (PreferenceCategory) preference;
+                    for (int j = category.getPreferenceCount() - 1; j >= 0; j--) {
+                        Preference innerPref = category.getPreference(j);
+                        if (!initPreference(innerPref)) {
+                            category.removePreference(innerPref);
+                        }
+                    }
+                    continue;
+                }
                 if (!initPreference(preference)) {
                     screen.removePreference(preference);
                 }
@@ -252,9 +297,99 @@ public class SettingsActivity extends FragmentActivity
                         preference.setOrder(0);
                     }
                     return mDeveloperOptionsEnabled;
+
+                case Utilities.KEY_DOCK_SEARCH:
+                    mShowGoogleBarPref = preference;
+                    updateIsGoogleAppEnabled();
+                    return true;
+
+                case Utilities.KEY_DOCK_SEARCH_PROVIDER:
+                    mSearchProviderPref = (ListPreference) preference;
+                    updateSearchProviders();
+                    return true;
+
+                case Utilities.KEY_MINUS_ONE:
+                    mShowGoogleAppPref = preference;
+                    updateIsGoogleAppEnabled();
+                    return true;
             }
 
             return true;
+        }
+
+        private void updateIsGoogleAppEnabled() {
+            if (mShowGoogleAppPref != null) {
+                mShowGoogleAppPref.setEnabled(Utilities.isGSAEnabled(getContext()));
+            }
+
+            if (mShowGoogleBarPref != null) {
+                mShowGoogleBarPref.setEnabled(QsbContainerView.getSearchWidgetPackageName(getContext()) != null);
+                mShowGoogleBarPref.setOnPreferenceChangeListener((pref, newValue) -> {
+                    boolean value = (Boolean) newValue;
+                    if (mSearchProviderPref != null) {
+                        mSearchProviderPref.setEnabled(value);
+                    }
+                    SharedPreferences prefs = LauncherPrefs.getPrefs(
+                            getContext().getApplicationContext());
+                    prefs.edit().putBoolean(Utilities.KEY_DOCK_SEARCH, value).commit();
+                    return true;
+                });
+                if (mSearchProviderPref != null) {
+                    mSearchProviderPref.setEnabled(
+                            ((SwitchPreferenceCompat) mShowGoogleBarPref).isChecked());
+                }
+            }
+        }
+
+        private void updateSearchProviders() {
+            if (mSearchProviderPref == null) {
+                return;
+            }
+            if (QsbContainerView.getSearchWidgetPackageName(getContext()) == null) {
+                mSearchProviderPref.setEnabled(false);
+                return;
+            }
+            if (mShowGoogleBarPref != null) {
+                mSearchProviderPref.setEnabled(
+                        ((SwitchPreferenceCompat) mShowGoogleBarPref).isChecked());
+            }
+            LinkedHashMap<String, String> fallbackMap =
+                    Utilities.getQSBProviderFallbacks(getContext());
+            String[] fallbacks = fallbackMap.keySet().toArray(new String[0]);
+            String[] fallbackNames = fallbackMap.values().toArray(new String[0]);
+            ArrayList<CharSequence> entries = new ArrayList<>();
+            ArrayList<CharSequence> entryValues = new ArrayList<>();
+            // always add the default first
+            entries.add(getContext().getResources().getString(
+                    R.string.pref_dock_search_provider_default));
+            entryValues.add("");
+            // add the rest after it
+            for (int i = 0; i < fallbacks.length; i++) {
+                if (!Utilities.isPackageEnabled(fallbacks[i], getContext())) {
+                    continue;
+                }
+                entries.add(fallbackNames[i]);
+                entryValues.add(fallbacks[i]);
+            }
+            // update the preference
+            mSearchProviderPref.setOnPreferenceChangeListener((pref, newValue) -> {
+                String value = (String) newValue;
+                int index = mSearchProviderPref.findIndexOfValue(value);
+                mSearchProviderPref.setSummary(mSearchProviderPref.getEntries()[index]);
+                SharedPreferences prefs = LauncherPrefs.getPrefs(
+                        getContext().getApplicationContext());
+                prefs.edit().putString(Utilities.KEY_DOCK_SEARCH_PROVIDER, value).commit();
+                return true;
+            });
+            CharSequence[] entriesArr = entries.toArray(new CharSequence[0]);
+            CharSequence[] valuesArr = entryValues.toArray(new CharSequence[0]);
+            mSearchProviderPref.setEntries(entriesArr);
+            mSearchProviderPref.setEntryValues(valuesArr);
+            // update selection and summary
+            String value = Utilities.getQSBProviderOverride(getContext());
+            int index = mSearchProviderPref.findIndexOfValue(value);
+            mSearchProviderPref.setValue(index >= 0 ? value : "");
+            mSearchProviderPref.setSummary(entriesArr[index >= 0 ? index : 0]);
         }
 
         @Override

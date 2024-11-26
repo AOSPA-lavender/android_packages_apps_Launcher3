@@ -108,6 +108,7 @@ public class TaskOverlayFactory implements ResourceBasedOverride {
     /** Note that these will be shown in order from top to bottom, if available for the task. */
     private static final TaskShortcutFactory[] MENU_OPTIONS = new TaskShortcutFactory[]{
             TaskShortcutFactory.APP_INFO,
+            TaskShortcutFactory.KILL_APP,
             TaskShortcutFactory.SPLIT_SELECT,
             TaskShortcutFactory.PIN,
             TaskShortcutFactory.INSTALL,
@@ -207,6 +208,21 @@ public class TaskOverlayFactory implements ResourceBasedOverride {
                     (GroupedTaskView) mTaskContainer.getThumbnailViewDeprecated().getTaskView();
             taskView.getRecentsView().getSplitSelectController().getAppPairsController()
                     .saveAppPair(taskView);
+        }
+
+        private void clearAllTasks() {
+            final RecentsView recentsView =
+                    mTaskContainer.getThumbnailViewDeprecated().getTaskView().getRecentsView();
+            recentsView.dismissAllTasks();
+        }
+
+        private void launchLens() {
+            final RecentsView recentsView =
+                    mTaskContainer.getThumbnailViewDeprecated().getTaskView().getRecentsView();
+            if (recentsView != null) {
+                recentsView.startHome();
+                mImageApi.startLensActivity();
+            }
         }
 
         /**
@@ -320,16 +336,32 @@ public class TaskOverlayFactory implements ResourceBasedOverride {
             }
 
             @SuppressLint("NewApi")
+            @Override
             public void onScreenshot() {
                 endLiveTileMode(() -> saveScreenshot(mTask));
             }
 
+            @Override
             public void onSplit() {
                 endLiveTileMode(TaskOverlay.this::enterSplitSelect);
             }
 
             public void onSaveAppPair() {
                 endLiveTileMode(TaskOverlay.this::saveAppPair);
+            }
+
+            @Override
+            public void onLens() {
+                if (mIsAllowedByPolicy) {
+                    endLiveTileMode(TaskOverlay.this::launchLens);
+                } else {
+                    showBlockedByPolicyMessage();
+                }
+            }
+
+            @Override
+            public void onClearAllTasksRequested() {
+                endLiveTileMode(TaskOverlay.this::clearAllTasks);
             }
         }
     }
@@ -347,5 +379,9 @@ public class TaskOverlayFactory implements ResourceBasedOverride {
 
         /** User wants to save an app pair with current group of apps. */
         void onSaveAppPair();
+
+        void onLens();
+
+        void onClearAllTasksRequested();
     }
 }

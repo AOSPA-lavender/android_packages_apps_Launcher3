@@ -30,10 +30,9 @@
     </style>
 
     <style name="LauncherTheme" parent="@style/BaseLauncherTheme">
-        <item name="android:textColorSecondary">#DE000000</item>
-        <item name="allAppsScrimColor">?attr/materialColorSurfaceDim</item>
-        <item name="allappsHeaderProtectionColor">
-            @color/material_color_surface_container_highest</item>
+        <item name="android:textColorSecondary">@*android:color/system_neutral2_800</item>
+        <item name="allAppsScrimColor">@*android:color/system_neutral1_50</item>
+	<item name="allappsHeaderProtectionColor">@*android:color/transparent</item>
         <item name="allAppsNavBarScrimColor">#66FFFFFF</item>
         <item name="popupColorPrimary">@color/popup_color_primary_light</item>
         <item name="popupColorSecondary">@color/popup_color_secondary_light</item>
@@ -147,13 +146,13 @@
 
     <style name="LauncherTheme.Dark" parent="@style/LauncherTheme">
         <item name="android:textColorPrimary">@color/text_color_primary_dark</item>
-        <item name="android:textColorSecondary">@color/text_color_secondary_dark</item>
+        <item name="android:textColorSecondary">@*android:color/system_neutral1_100</item>
         <item name="android:textColorTertiary">@color/text_color_tertiary_dark</item>
         <item name="android:textColorHint">#A0FFFFFF</item>
         <item name="android:colorControlHighlight">#19FFFFFF</item>
         <item name="android:colorPrimary">#FF212121</item>
-        <item name="allAppsScrimColor">?attr/materialColorSurfaceDim</item>
-        <item name="allappsHeaderProtectionColor">@color/material_color_surface_container_low</item>
+        <item name="allAppsScrimColor">@*android:color/system_neutral1_900</item>
+	<item name="allappsHeaderProtectionColor">@*android:color/transparent</item>
         <item name="allAppsNavBarScrimColor">#80000000</item>
         <item name="popupColorPrimary">@color/popup_color_primary_dark</item>
         <item name="popupColorSecondary">@color/popup_color_secondary_dark</item>
@@ -199,27 +198,87 @@
 
     <!-- A derivative project can extend these themes to customize the application theme without
          affecting the base theme -->
-    <style name="AppTheme" parent="@style/LauncherTheme" />
-    <style name="AppTheme.DarkMainColor" parent="@style/LauncherTheme.DarkMainColor" />
-    <style name="AppTheme.DarkText" parent="@style/LauncherTheme.DarkText" />
+    <style name="AppTheme" parent="@style/LauncherTheme">
+        <item name="qsbFillColor">@*android:color/background_device_default_light</item>
+        <item name="qsbIconTintPrimary">@color/qsb_primary</item>
+        <item name="qsbIconTintQuaternary">@color/qsb_quaternary</item>
+        <item name="qsbIconTintSecondary">@color/qsb_secondary</item>
+        <item name="qsbIconTintTertiary">@color/qsb_tertiary</item>
+    </style>
 
-    <style name="AppTheme.Dark" parent="@style/LauncherTheme.Dark" />
-    <style name="AppTheme.Dark.DarkMainColor" parent="@style/LauncherTheme.Dark.DarkMainColor" />
-    <style name="AppTheme.Dark.DarkText" parent="@style/LauncherTheme.Dark.DarkText" />
+    <style name="AppTheme.DarkMainColor" parent="@style/LauncherTheme.DarkMainColor">
+        <item name="qsbFillColor">@*android:color/background_device_default_light</item>
+        <item name="qsbIconTintPrimary">@color/qsb_primary</item>
+        <item name="qsbIconTintQuaternary">@color/qsb_quaternary</item>
+        <item name="qsbIconTintSecondary">@color/qsb_secondary</item>
+        <item name="qsbIconTintTertiary">@color/qsb_tertiary</item>
+    </style>
+
+    <style name="AppTheme.DarkText" parent="@style/LauncherTheme.DarkText">
+        <item name="qsbFillColor">@*android:color/background_device_default_light</item>
+        <item name="qsbIconTintPrimary">@color/qsb_primary</item>
+        <item name="qsbIconTintQuaternary">@color/qsb_quaternary</item>
+        <item name="qsbIconTintSecondary">@color/qsb_secondary</item>
+        <item name="qsbIconTintTertiary">@color/qsb_tertiary</item>
+    </style>
+
+    <style name="AppTheme.Dark" parent="@style/LauncherTheme.Dark">
+        <item name="qsbFillColor">@color/surface</item>
+        <item name="qsbIconTintPrimary">@color/qsb_primary</item>
+        <item name="qsbIconTintQuaternary">@color/qsb_quaternary</item>
+        <item name="qsbIconTintSecondary">@color/qsb_secondary</item>
+        <item name="qsbIconTintTertiary">@color/qsb_tertiary</item>
+    </style>
+
+    <style name="AppTheme.Dark.DarkMainColor" parent="@style/LauncherTheme.Dark.DarkMainColor">
+        <item name="qsbFillColor">@color/surface</item>
+        <item name="qsbIconTintPrimary">@color/qsb_primary</item>
+        <item name="qsbIconTintQuaternary">@color/qsb_quaternary</item>
+        <item name="qsbIconTintSecondary">@color/qsb_secondary</item>
+        <item name="qsbIconTintTertiary">@color/qsb_tertiary</item>
+    </style>
+    <style name="AppTheme.Dark.DarkText" parent="@style/LauncherTheme.Dark.DarkText">
+        <item name="qsbFillColor">@color/surface</item>
+        <item name="qsbIconTintPrimary">@color/qsb_primary</item>
+        <item name="qsbIconTintQuaternary">@color/qsb_quaternary</item>
+        <item name="qsbIconTintSecondary">@color/qsb_secondary</item>
+        <item name="qsbIconTintTertiary">@color/qsb_tertiary</item>
+    </style>
 
     <style name="HomeSettings.Theme" parent="@android:style/Theme.DeviceDefault.Settings">
         <item name="android:navigationBarColor">?android:colorPrimaryDark</item>
         <item name="android:windowActionBar">false</item>
         <item name="android:windowNoTitle">true</item>
         <item name="preferenceTheme">@style/HomeSettings.PreferenceTheme</item>
+        <item name="alertDialogTheme">@style/HomeSettings.AlertDialog</item>
     </style>
 
     <style name="HomeSettings.PreferenceTheme" parent="@style/PreferenceThemeOverlay.v14.Material">
         <item name="preferenceFragmentCompatStyle">@style/HomeSettings.FragmentCompatStyle</item>
+        <item name="alertDialogTheme">@style/HomeSettings.AlertDialog</item>
     </style>
 
     <style name="HomeSettings.FragmentCompatStyle" parent="@style/PreferenceFragment.Material">
         <item name="android:layout">@layout/home_settings</item>
+        <item name="alertDialogTheme">@style/HomeSettings.AlertDialog</item>
+    </style>
+
+    <style name="HomeSettings.AlertDialog.Base" parent="@style/Theme.AppCompat.DayNight.Dialog.Alert">
+        <item name="colorAccent">@android:color/system_primary_light</item>
+        <item name="android:colorBackground">@android:color/system_surface_container_high_light</item>
+    </style>
+
+    <style name="HomeSettings.AlertDialog" parent="@style/HomeSettings.AlertDialog.Base">
+        <item name="android:windowSoftInputMode">adjustResize</item>
+        <item name="android:clipToPadding">true</item>
+        <item name="android:clipChildren">true</item>
+        <item name="android:textDirection">locale</item>
+        <item name="android:layoutDirection">locale</item>
+
+        <!-- copied from Theme.DeviceDefault.Dialog.Alert -->
+        <item name="dialogCornerRadius">@*android:dimen/config_dialogCornerRadius</item>
+        <item name="android:windowTitleStyle">@*android:style/DialogWindowTitle.DeviceDefault</item>
+        <item name="buttonBarButtonStyle">@*android:style/Widget.DeviceDefault.Button.ButtonBar.AlertDialog</item>
     </style>
 
     <!--
@@ -464,5 +523,12 @@
         <item name="android:textColor">@color/material_color_on_surface</item>
         <item name="android:fontFamily">google-sans-text-medium</item>
         <item name="android:ellipsize">end</item>
+    </style>
+
+    <style name="QsbIconTint">
+        <item name="qsbIconTintPrimary">@color/qsb_primary</item>
+        <item name="qsbIconTintQuaternary">@color/qsb_quaternary</item>
+        <item name="qsbIconTintSecondary">@color/qsb_secondary</item>
+        <item name="qsbIconTintTertiary">@color/qsb_tertiary</item>
     </style>
 </resources>
