@@ -100,18 +100,9 @@ open class SystemApiWrapper(context: Context?) : ApiWrapper(context) {
                 mContext,
                 StartActivityParams(null as PendingIntent?, 0).apply {
                     intentSender =
-                        if (Utilities.isFDroidEnabled(mContext)) {
-                            PendingIntent.getActivityAsUser(
-                                mContext, 0,
-                                super.getAppMarketActivityIntent(packageName, user),
-                                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-                                null, user
-                            )?.intentSender ?: null
-                        } else {
-                            mContext
-                                .getSystemService(LauncherApps::class.java)!!
-                                .getAppMarketActivityIntent(packageName, user)
-                        }
+                        mContext
+                            .getSystemService(LauncherApps::class.java)!!
+                            .getAppMarketActivityIntent(packageName, user)
                     options =
                         ActivityOptions.makeBasic()
                             .setPendingIntentBackgroundActivityStartMode(
